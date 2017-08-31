@@ -36,6 +36,7 @@ type NetworkInterface struct {
 	IPAddresses     []net.IPNet
 	Routes          []NetworkRoute
 	Bond            string
+	Vlan            []string
 }
 
 type NetworkRoute struct {
@@ -83,6 +84,9 @@ func (i NetworkInterface) NetworkConfig() string {
 	}
 	if i.Bond != "" {
 		config += fmt.Sprintf("Bond=%s\n", i.Bond)
+	}
+	for _, vlan := range i.Vlan {
+		config += fmt.Sprintf("VLAN=%s\n", vlan)
 	}
 
 	for _, addr := range i.IPAddresses {
