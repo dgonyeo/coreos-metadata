@@ -32,11 +32,14 @@ type NetworkInterface struct {
 	Name            string
 	HardwareAddress net.HardwareAddr
 	Priority        int
+	DHCP            string
 	Nameservers     []net.IP
 	IPAddresses     []net.IPNet
 	Routes          []NetworkRoute
+	RouteTable      int
 	Bond            string
 	Vlan            []string
+	Macvlan         []string
 }
 
 type NetworkRoute struct {
@@ -79,6 +82,9 @@ func (i NetworkInterface) NetworkConfig() string {
 	}
 
 	config += "\n[Network]\n"
+	if i.DHCP != "" {
+		config += fmt.Sprintf("DHCP=%s\n", i.DHCP)
+	}
 	for _, nameserver := range i.Nameservers {
 		config += fmt.Sprintf("DNS=%s\n", nameserver)
 	}
@@ -88,12 +94,18 @@ func (i NetworkInterface) NetworkConfig() string {
 	for _, vlan := range i.Vlan {
 		config += fmt.Sprintf("VLAN=%s\n", vlan)
 	}
+	for _, macvlan := range i.Macvlan {
+		config += fmt.Sprintf("MACVLAN=%s\n", macvlan)
+	}
 
 	for _, addr := range i.IPAddresses {
 		config += fmt.Sprintf("\n[Address]\nAddress=%s\n", addr.String())
 	}
 	for _, route := range i.Routes {
 		config += fmt.Sprintf("\n[Route]\nDestination=%s\nGateway=%s\n", route.Destination.String(), route.Gateway)
+	}
+	if i.RouteTable != 0 {
+		config += fmt.Sprintf("Table=%d\n", i.RouteTable)
 	}
 
 	return config
@@ -108,7 +120,10 @@ func (d NetworkDevice) UnitName() string {
 }
 
 func (d NetworkDevice) NetdevConfig() string {
-	config := fmt.Sprintf("[NetDev]\nName=%s\nKind=%s\nMACAddress=%s\n", d.Name, d.Kind, d.HardwareAddress)
+	config := fmt.Sprintf("[NetDev]\nName=%s\nKind=%s\n", d.Name, d.Kind)
+	if d.HardwareAddress != nil {
+		config += fmt.Sprintf("MACAddress=%s\n", d.HardwareAddress)
+	}
 
 	for _, section := range d.Sections {
 		config += fmt.Sprintf("\n[%s]\n", section.Name)
